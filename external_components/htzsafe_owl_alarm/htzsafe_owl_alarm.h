@@ -23,7 +23,7 @@ class HtzsafeOwlAlarm : public Component, public uart::UARTDevice {
   float parsed_value_{0.0f};  // Parsed value to be published
 
  private:
-  uint32_t StartTime { 0 };
+  uint32_t StartTime{0};
 };
 
 }  // namespace htzsafe_owl_alarm
