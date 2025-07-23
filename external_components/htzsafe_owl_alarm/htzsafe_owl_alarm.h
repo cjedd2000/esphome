@@ -23,6 +23,8 @@ class HtzsafeOwlAlarm : public Component, public uart::UARTDevice {
 
   HtzsafeOwlAlarm();
 
+  binary_sensor::BinarySensor TestSensor;
+
   void setup() override;
   void loop() override;
   void dump_config() override;

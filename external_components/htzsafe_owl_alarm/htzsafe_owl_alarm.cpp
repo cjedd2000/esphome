@@ -131,6 +131,10 @@ esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::HtzsafeOwlAlarm() {
     MotionSensors[i].id = 0;
     MotionSensors[i].active = false;
   }
+
+  TestSensor.set_name("Test Sensor Name");
+  TestSensor.set_object_id("TestSens");
+  TestSensor.publish_initial_state(false);
 }
 
 void HtzsafeOwlAlarm::setup() { ESP_LOGI(TAG, "Setup Complete"); }
@@ -179,6 +183,9 @@ bool HtzsafeOwlAlarm::activate_sensor(uint16_t id) {
       MotionSensors[i].timeActivated = millis();
       MotionSensors[i].sensor->publish_state(true);
 
+      TestSensor.publish_state(true);
+      ESP_LOGI(TAG, "Test Sensor");
+
       return true;
     }
   }
@@ -195,6 +202,8 @@ void esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::manage_sensors() {
       if (millis() - MotionSensors[i].timeActivated > 5000) {
         MotionSensors[i].active = false;
         MotionSensors[i].sensor->publish_state(false);
+
+        TestSensor.publish_state(false);
       }
     }
   }
