@@ -124,16 +124,20 @@ int32_t sensorStateMachine(uint8_t serialByte, SensorData *data) {
 
 uint32_t millis() { return esp_timer_get_time() / 1000; }
 
+esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::HtzsafeOwlAlarm() {
+  // Init sensors
+  for (uint8_t i = 0; i < MAX_SENSORS; i++) {
+    MotionSensors[i].sensor = nullptr;
+    MotionSensors[i].id = 0;
+    MotionSensors[i].active = false;
+  }
+}
+
 void HtzsafeOwlAlarm::setup() { ESP_LOGI(TAG, "Setup Complete"); }
 
 void HtzsafeOwlAlarm::dump_config() { ESP_LOGCONFIG(TAG, "HTZSAFE Owl Sensor"); }
 
 void HtzsafeOwlAlarm::loop() {
-  /*if (millis() - StartTime > 5000) {
-    StartTime = millis();
-    ESP_LOGI(TAG, "Test Log");
-  }*/
-
   while (this->available()) {
     uint8_t serialByte;
     SensorData data;
@@ -154,8 +158,8 @@ void HtzsafeOwlAlarm::loop() {
       ESP_LOGI(TAG, "Sensor Det: %d, %d %d %d %d : %d %d %d %d", sensorId, data.data3, data.data2, data.data1,
                data.data0, nib3, nib2, nib1, nib0);
 
-      // Debug for unknown test sensor
-      if (sensorId != 20236 && sensorId != 64776) {
+      // Log Unknown Sensor if not found during activation
+      if (!activate_sensor(sensorId)) {
         ESP_LOGW(TAG, "Unknown");
       }
 
@@ -164,6 +168,52 @@ void HtzsafeOwlAlarm::loop() {
       }
     }
   }
+
+  manage_sensors();
+}
+
+bool HtzsafeOwlAlarm::activate_sensor(uint16_t id) {
+  for (uint8_t i; i < SensorCount; i++) {
+    if (MotionSensors[i].id == id) {
+      MotionSensors[i].active = true;
+      MotionSensors[i].timeActivated = millis();
+      MotionSensors[i].sensor->publish_state(true);
+
+      return true;
+    }
+  }
+
+  // Sensor not defined
+  return false;
+}
+
+void esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::manage_sensors() {
+  // Iterate through all sensors
+  for (uint8_t i; i < SensorCount; i++) {
+    // Check if need to deactivate sensor after timeout
+    if (MotionSensors[i].active) {
+      if (millis() - MotionSensors[i].timeActivated > 5000) {
+        MotionSensors[i].active = false;
+        MotionSensors[i].sensor->publish_state(false);
+      }
+    }
+  }
+}
+
+bool HtzsafeOwlAlarm::add_motion_sensor(binary_sensor::BinarySensor *sensor, uint16_t id) {
+  if (SensorCount < MAX_SENSORS) {
+    this->MotionSensors[SensorCount].sensor = sensor;
+    this->MotionSensors[SensorCount].id = id;
+
+    SensorCount++;
+
+    ESP_LOGI(TAG, "Sensor Added, id: %d, total sensors: %d", id, SensorCount);
+
+    return true;
+  }
+
+  ESP_LOGE(TAG, "To Many Sensors Added!!!");
+  return false;
 }
 
 }  // namespace htzsafe_owl_alarm
