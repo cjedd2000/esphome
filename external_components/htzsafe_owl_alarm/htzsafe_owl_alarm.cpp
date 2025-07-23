@@ -8,10 +8,119 @@ namespace htzsafe_owl_alarm {
 
 static const char *TAG = "htzsafe_owl_alarm.component";
 
+typedef struct SensorData {
+  int32_t sensorId;
+
+  uint8_t data3;
+  uint8_t data2;
+  uint8_t data1;
+  uint8_t data0;
+} SensorData;
+
+typedef enum state { Idle, Start2, Start1, Start0, IdHigh, IdLow, Data3, Data2, Data1, Data0 } State;
+
 /*******************************************************************
  * Private Function Prototypes
  *******************************************************************/
 uint32_t millis();
+int32_t sensorStateMachine(uint8_t serialByte, SensorData *data);
+
+/*
+ * Headder Bytes
+ */
+const uint8_t START_BYTE2 = 235;
+const uint8_t START_BYTE1 = 175;
+const uint8_t START_BYTE0 = 5;
+
+int32_t sensorStateMachine(uint8_t serialByte, SensorData *data) {
+  static State SensorState = Idle;
+  static uint16_t CurrentSensorId = 0;
+
+  static uint8_t data3 = 0;
+  static uint8_t data2 = 0;
+  static uint8_t data1 = 0;
+  static uint8_t data0 = 0;
+
+  switch (SensorState) {
+    case Idle:
+      if (serialByte == START_BYTE2) {
+        SensorState = Start2;
+      }
+      break;
+
+    case Start2:
+      if (serialByte == START_BYTE1) {
+        SensorState = Start1;
+      } else {
+        SensorState = Idle;
+      }
+      break;
+
+    case Start1:
+      if (serialByte == START_BYTE0) {
+        SensorState = Start0;
+      } else {
+        SensorState = Idle;
+      }
+      break;
+
+    case Start0:
+      CurrentSensorId = serialByte << 8;
+      SensorState = IdHigh;
+      break;
+
+    case IdHigh:
+      CurrentSensorId = CurrentSensorId | (0xF & serialByte);
+      SensorState = IdLow;
+      break;
+
+    case IdLow:
+      data3 = serialByte;
+      SensorState = Data3;
+      break;
+
+    case Data3:
+      data2 = serialByte;
+      SensorState = Data2;
+      break;
+
+    case Data2:
+      data1 = serialByte;
+      SensorState = Data1;
+      break;
+
+    case Data1:
+      data0 = serialByte;
+      SensorState = Data0;
+      break;
+
+    case Data0:
+      SensorState = Idle;
+      break;
+
+    default:
+      SensorState = Idle;
+      break;
+  }
+
+  int32_t retValue;
+
+  if (SensorState == Idle) {
+    retValue = CurrentSensorId;
+    CurrentSensorId = 0;
+
+    if (data != nullptr) {
+      data->data3 = data3;
+      data->data2 = data2;
+      data->data1 = data1;
+      data->data0 = data0;
+    }
+  } else {
+    retValue = -1;
+  }
+
+  return retValue;
+}
 
 uint32_t millis() { return esp_timer_get_time() / 1000; }
 
@@ -20,9 +129,36 @@ void HtzsafeOwlAlarm::setup() { ESP_LOGI(TAG, "Setup Complete"); }
 void HtzsafeOwlAlarm::dump_config() { ESP_LOGCONFIG(TAG, "HTZSAFE Owl Sensor"); }
 
 void HtzsafeOwlAlarm::loop() {
-  if (millis() - StartTime > 5000) {
+  /*if (millis() - StartTime > 5000) {
     StartTime = millis();
     ESP_LOGI(TAG, "Test Log");
+  }*/
+
+  while (this->available()) {
+    uint8_t serialByte;
+    SensorData data;
+
+    this->read_byte(&serialByte);
+
+    int32_t sensorId = sensorStateMachine(serialByte, &data);
+
+    if (sensorId > 0) {
+      // char writeBuff[64];
+      // uint8_t wrLen = snprintf(writeBuff, 63, "Sensor Det: %d, %d %d %d %d\n\r", sensorId, data.data3, data.data2,
+      // data.data1, data.data0);
+      uint8_t nib3 = (sensorId >> 12) & 0xF;
+      uint8_t nib2 = (sensorId >> 8) & 0xF;
+      uint8_t nib1 = (sensorId >> 4) & 0xF;
+      uint8_t nib0 = sensorId & 0xF;
+
+      ESP_LOGI(TAG, "Sensor Det: %d, %d %d %d %d : %d %d %d %d", sensorId, data.data3, data.data2, data.data1,
+               data.data0, nib3, nib2, nib1, nib0);
+
+      // Debug for unknown test sensor
+      if (sensorId != 20236 && sensorId != 64776) {
+        ESP_LOGW(TAG, "Unknown");
+      }
+    }
   }
 }
 
