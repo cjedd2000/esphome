@@ -158,13 +158,12 @@ void HtzsafeOwlAlarm::loop() {
       if (sensorId != 20236 && sensorId != 64776) {
         ESP_LOGW(TAG, "Unknown");
       }
+
+      if (LastSensorId != nullptr) {
+        LastSensorId->publish_state(sensorId);
+      }
     }
   }
-}
-
-void HtzsafeOwlAlarm::parse_data() {
-  // Example parsing method
-  // Translates data received into buffer_data_ and stores it in parsed_value_ for publishing
 }
 
 }  // namespace htzsafe_owl_alarm
