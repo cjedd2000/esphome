@@ -3,16 +3,26 @@
 
 esphome:
   name: htzsafe-owl-alarm-dev
-  build_path: build/htzsafe_owl_alarm_dev
 
 htzsafe_owl_alarm:
   id: OwlAlarm
   uart_id: OwlUart
+  last_id:                   # Shows last received ID, used to ID new sensors
+    name: Last Sensor Id
+
+  # Define Motions Sensors
+  motion_sensors:
+    - name: Driveway
+      sensor_id: 62276       # Sesnor ID as picked up by component
+
+    - name: Backyard
+      sensor_id: 24436
 
 uart:
   id: OwlUart
   tx_pin: 17
   rx_pin: 16
   baud_rate: 9600
+  rx_buffer_size: 2048
 
 ```
