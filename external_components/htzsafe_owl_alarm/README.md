@@ -17,6 +17,7 @@ htzsafe_owl_alarm:
 
     - name: Backyard
       sensor_id: 24436
+      motion_timeout: 5 # Timeout in seconds for new motion event
 
 uart:
   id: OwlUart

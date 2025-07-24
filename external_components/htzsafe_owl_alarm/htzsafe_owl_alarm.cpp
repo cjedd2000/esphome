@@ -139,7 +139,16 @@ esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::HtzsafeOwlAlarm() {
 
 void HtzsafeOwlAlarm::setup() { ESP_LOGI(TAG, "Setup Complete"); }
 
-void HtzsafeOwlAlarm::dump_config() { ESP_LOGCONFIG(TAG, "HTZSAFE Owl Sensor"); }
+void HtzsafeOwlAlarm::dump_config() {
+  ESP_LOGCONFIG(TAG, "HTZSAFE Owl Sensor:");
+  ESP_LOGCONFIG(TAG, "Total Sensors: %d:", SensorCount);
+  for (uint8_t i = 0; i < SensorCount; i++) {
+    LOG_BINARY_SENSOR("", "Motion", MotionSensors[i].sensor);
+    ESP_LOGCONFIG(TAG, "  ESP ID: %d", MotionSensors[i].id);
+    ESP_LOGCONFIG(TAG, "  Timeout ms: %d", MotionSensors[i].timeoutMs);
+  }
+  LOG_SENSOR("", "Last ID", LastSensorId);
+}
 
 void HtzsafeOwlAlarm::loop() {
   while (this->available()) {
@@ -199,7 +208,7 @@ void esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::manage_sensors() {
   for (uint8_t i; i < SensorCount; i++) {
     // Check if need to deactivate sensor after timeout
     if (MotionSensors[i].active) {
-      if (millis() - MotionSensors[i].timeActivated > 5000) {
+      if (millis() - MotionSensors[i].timeActivated > MotionSensors[i].timeoutMs) {
         MotionSensors[i].active = false;
         MotionSensors[i].sensor->publish_state(false);
 
@@ -210,9 +219,15 @@ void esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::manage_sensors() {
 }
 
 bool HtzsafeOwlAlarm::add_motion_sensor(binary_sensor::BinarySensor *sensor, uint16_t id) {
+  return add_motion_sensor_timeout(sensor, id, DEFAULT_MOTION_TIMEOUT_MS);
+}
+
+bool esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::add_motion_sensor_timeout(binary_sensor::BinarySensor *sensor,
+                                                                            uint16_t id, uint32_t timeout_ms) {
   if (SensorCount < MAX_SENSORS) {
     this->MotionSensors[SensorCount].sensor = sensor;
     this->MotionSensors[SensorCount].id = id;
+    this->MotionSensors[SensorCount].timeoutMs = timeout_ms;
 
     SensorCount++;
 

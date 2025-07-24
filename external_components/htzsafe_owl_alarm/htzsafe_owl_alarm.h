@@ -14,12 +14,14 @@ typedef struct motionSensor {
   binary_sensor::BinarySensor *sensor;
   uint16_t id;
   uint32_t timeActivated;
+  uint32_t timeoutMs;
   bool active;
 } MotionSensor;
 
 class HtzsafeOwlAlarm : public Component, public uart::UARTDevice {
  public:
   static const uint8_t MAX_SENSORS = 32;
+  static const uint32_t DEFAULT_MOTION_TIMEOUT_MS = 10000;
 
   HtzsafeOwlAlarm();
 
@@ -31,6 +33,7 @@ class HtzsafeOwlAlarm : public Component, public uart::UARTDevice {
 
   void set_last_id_sensor(sensor::Sensor *sensor) { this->LastSensorId = sensor; }
   bool add_motion_sensor(binary_sensor::BinarySensor *sensor, uint16_t id);
+  bool add_motion_sensor_timeout(binary_sensor::BinarySensor *sensor, uint16_t id, uint32_t timeout);
 
  protected:
   bool activate_sensor(uint16_t id);
