@@ -169,8 +169,29 @@ void HtzsafeOwlAlarm::loop() {
       uint8_t nib1 = (sensorId >> 4) & 0xF;
       uint8_t nib0 = sensorId & 0xF;
 
+      // Log raw data
       ESP_LOGI(TAG, "Sensor Det: %d, %d %d %d %d : %d %d %d %d", sensorId, data.data3, data.data2, data.data1,
                data.data0, nib3, nib2, nib1, nib0);
+
+      // Get data into different formats for logging
+      uint32_t bigEnd32 = (data.data3 << 24) | (data.data2 << 16) | (data.data1 << 8) | (data.data0);
+      uint32_t littleEnd32 = (data.data0 << 24) | (data.data1 << 16) | (data.data2 << 8) | (data.data3);
+
+      uint16_t bigEnd16High = (data.data3 << 8) | (data.data2);
+      uint16_t bigEnd16Low = (data.data1 << 8) | (data.data0);
+
+      uint16_t littleEnd16High = (data.data2 << 8) | (data.data3);
+      uint16_t littleEnd16Low = (data.data0 << 8) | (data.data1);
+
+      // Log Data Out
+      ESP_LOGI(TAG, "32 Big: %d", bigEnd32);
+      ESP_LOGI(TAG, "32 Little: %d", littleEnd32);
+
+      ESP_LOGI(TAG, "16 Big High: %d", bigEnd16High);
+      ESP_LOGI(TAG, "16 Big Low: %d", bigEnd16Low);
+
+      ESP_LOGI(TAG, "16 Little High: %d", littleEnd16High);
+      ESP_LOGI(TAG, "16 Little Low: %d", littleEnd16Low);
 
       // Log Unknown Sensor if not found during activation
       if (!activate_sensor(sensorId)) {
