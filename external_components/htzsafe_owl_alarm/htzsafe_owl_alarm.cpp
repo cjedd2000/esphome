@@ -137,7 +137,12 @@ esphome::htzsafe_owl_alarm::HtzsafeOwlAlarm::HtzsafeOwlAlarm() {
   TestSensor.publish_initial_state(false);
 }
 
-void HtzsafeOwlAlarm::setup() { ESP_LOGI(TAG, "Setup Complete"); }
+void HtzsafeOwlAlarm::setup() {
+  for (uint8_t i = 0; i < SensorCount; i++) {
+    MotionSensors[i].sensor->publish_initial_state(false);
+  }
+  ESP_LOGI(TAG, "Setup Complete");
+}
 
 void HtzsafeOwlAlarm::dump_config() {
   ESP_LOGCONFIG(TAG, "HTZSAFE Owl Sensor:");
@@ -193,7 +198,6 @@ bool HtzsafeOwlAlarm::activate_sensor(uint16_t id) {
       MotionSensors[i].sensor->publish_state(true);
 
       TestSensor.publish_state(true);
-      ESP_LOGI(TAG, "Test Sensor");
 
       return true;
     }
