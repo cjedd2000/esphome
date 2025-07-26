@@ -142,5 +142,6 @@ sdkconfig.*
 
 /components
 /managed_components
+/external_components
 
 api-docs/
